@@ -1,0 +1,14 @@
+# User-uploaded content (keep only the placeholder index.html)
+uploads/*
+!uploads/index.html
+!uploads/resumes/
+!uploads/resumes/index.html
+
+# OS / editor junk
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.log
