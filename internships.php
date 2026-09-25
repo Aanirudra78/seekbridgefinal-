@@ -243,7 +243,7 @@ require 'includes/page_header.php';
 <?php endif; ?>
 
 <!-- ================= APPLY MODAL ================= -->
-<div class="modal fade" id="applyModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="applyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header apply-modal-head">
@@ -328,7 +328,17 @@ require 'includes/page_header.php';
             <div class="brand-logo mx-auto mb-3" style="width:64px;height:64px;font-size:1.6rem;"><i class="fa-solid fa-clipboard-question"></i></div>
             <h5 class="fw-bold mb-1" id="testTitle">Screening Test</h5>
             <p class="text-muted-2 mb-1"><i class="fa-regular fa-clock me-1"></i><span id="testDur"></span></p>
-            <p class="text-muted-2 small mb-4" id="testInfo">Answer as many as you can. Unanswered questions are marked as skipped.</p>
+            <p class="text-muted-2 small mb-3" id="testInfo">Answer as many as you can. Unanswered questions are marked as skipped.</p>
+            <div class="text-start mx-auto mb-4" style="max-width:420px;">
+              <div class="alert alert-warning text-start small mb-2">
+                <i class="fa-solid fa-shield-halved me-1"></i> <strong>Proctored test.</strong> Your screen locks — switching tabs or leaving the window is monitored.
+              </div>
+              <ul class="list-unstyled small text-start d-grid gap-2 mb-0">
+                <li class="d-flex gap-2"><i class="fa-solid fa-repeat text-danger mt-1"></i><span>Leaving the window: 1st offence = warning, 2nd offence = automatic submission.</span></li>
+                <li class="d-flex gap-2"><i class="fa-solid fa-stopwatch text-warning mt-1"></i><span>Timer is set by the company; the test auto-submits on timeout.</span></li>
+                <li class="d-flex gap-2"><i class="fa-solid fa-ban text-primary mt-1"></i><span>No refresh, back button or closing the tab while the test runs.</span></li>
+              </ul>
+            </div>
             <div class="d-flex flex-wrap justify-content-center gap-3">
               <button type="button" class="btn btn-accent btn-lg px-4" id="startTestBtn"><i class="fa-solid fa-circle-play me-1"></i> Start Test</button>
             </div>
@@ -346,6 +356,7 @@ require 'includes/page_header.php';
             <h6 class="fw-bold mb-0"><i class="fa-solid fa-stopwatch me-2 text-primary"></i><?php echo e($_SESSION['name']); ?>'s Test</h6>
             <div class="timer-box" id="timerBox">--:--</div>
           </div>
+          <div class="alert alert-danger d-none align-items-center gap-2 small mb-3" id="applyWarn"></div>
           <div class="apply-questions bg-light rounded p-3 mb-3" id="questionsWrap"></div>
           <button type="button" class="btn btn-navy btn-lg w-100" id="submitTestBtn"><i class="fa-solid fa-flag-checkered me-1"></i> Submit Test</button>
         </div>
@@ -402,4 +413,5 @@ require 'includes/page_header.php';
 <input type="hidden" id="autoOpenId" value="<?php echo $autoOpen; ?>">
 
 <?php require 'includes/page_footer.php'; ?>
+<script src="assets/js/guard.js"></script>
 <script src="assets/js/apply.js"></script>

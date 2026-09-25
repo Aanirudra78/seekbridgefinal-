@@ -34,6 +34,7 @@ $initial = strtoupper(substr($uname, 0, 1));
         <li class="nav-item"><a class="nav-link <?php echo $section==='jobs'?'active':''; ?>" href="institution_dashboard.php?s=jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $section==='internship'?'active':''; ?>" href="institution_dashboard.php?s=internship"><i class="fa-solid fa-rocket"></i> Internship</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $section==='skill'?'active':''; ?>" href="institution_dashboard.php?s=skill"><i class="fa-solid fa-chart-simple"></i> Skill</a></li>
+        <li class="nav-item"><a class="nav-link <?php echo ($section==='students' && isset($_GET['spage'])) ? 'active' : ''; ?>" href="student_search.php"><i class="fa-solid fa-magnifying-glass"></i> Students</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $section==='industry'?'active':''; ?>" href="institution_dashboard.php?s=industry"><i class="fa-solid fa-industry"></i> Industry</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $section==='about'?'active':''; ?>" href="institution_dashboard.php?s=about"><i class="fa-solid fa-building-columns"></i> About</a></li>
       </ul>

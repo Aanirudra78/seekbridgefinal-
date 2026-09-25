@@ -133,7 +133,8 @@ $avgScore = count($existing) > 0 ? round(array_sum($existing) / count($existing)
 
   <!-- ==================== QUIZ (left) ==================== -->
   <div class="col-lg-8">
-    <form method="post" action="skill_assessment.php">
+    <form method="post" action="skill_assessment.php" id="skillForm">
+      <input type="hidden" name="submit_assessment" value="1">
       <?php foreach ($question_bank as $skill => $questions): ?>
         <?php $lastScore = $existing[$skill] ?? null; $qk = e($skill); ?>
         <div class="quiz-card mb-4">
@@ -259,6 +260,65 @@ $avgScore = count($existing) > 0 ? round(array_sum($existing) / count($existing)
   </div>
 </div>
 
+<!-- ================= PRE-TEST INSTRUCTIONS ================= -->
+<div class="test-intro active" id="saIntro">
+  <div class="ti-card">
+    <div class="ti-head">
+      <div class="ti-logo"><i class="fa-solid fa-shield-halved"></i></div>
+      <h5>Skill Assessment — Proctored Mode</h5>
+      <p>Read the rules carefully before you start</p>
+    </div>
+    <div class="ti-body">
+      <div class="ti-rule">
+        <div class="ri"><i class="fa-solid fa-stopwatch"></i></div>
+        <div><strong>Total time: 10 minutes (fixed)</strong><span>The test has a live 10 minute countdown and auto-submits when time runs out. It cannot be paused.</span></div>
+      </div>
+      <div class="ti-rule">
+        <div class="ri"><i class="fa-solid fa-lock"></i></div>
+        <div><strong>Your screen will be locked</strong><span>Once you start, only the test is visible. Navigation, menus and other page content stay hidden while it runs.</span></div>
+      </div>
+      <div class="ti-rule">
+        <div class="ri"><i class="fa-solid fa-repeat"></i></div>
+        <div><strong>Tab / window switching is monitored</strong><span>Leaving this window is detected. The 1st offence shows a warning; on the 2nd offence the test submits automatically.</span></div>
+      </div>
+      <div class="ti-rule">
+        <div class="ri"><i class="fa-solid fa-ban"></i></div>
+        <div><strong>No refresh, back button or closing the tab</strong><span>Refreshing or leaving the page is treated as an offence and can submit your test at any point.</span></div>
+      </div>
+    </div>
+    <div class="ti-footer">
+      <label class="ti-check">
+        <input type="checkbox" id="saAgree">
+        <span>I understand the test is proctored — the timer cannot be paused and leaving the window is monitored.</span>
+      </label>
+      <button type="button" class="btn btn-accent btn-lg w-100" id="saStartBtn" disabled>
+        <i class="fa-solid fa-circle-play me-1"></i> Accept &amp; Start Test
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LOCKED TEST SCREEN ================= -->
+<div class="test-lock" id="saLock">
+  <div class="tl-topbar">
+    <div>
+      <div class="tl-title"><i class="fa-solid fa-shield-halved"></i> Skill Assessment</div>
+      <div class="tl-sub">Proctored mode active — screen is locked</div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+      <span class="tl-rule-chip"><i class="fa-solid fa-repeat"></i> 2 offences = auto-submit</span>
+      <div class="tl-timer" id="saTimer">10:00</div>
+    </div>
+  </div>
+  <div class="tl-warn" id="saWarn"></div>
+  <div class="tl-body" id="saBody"></div>
+  <div class="tl-footer">
+    <button type="button" class="btn btn-navy btn-lg" id="saSubmitBtn" form="skillForm">
+      <i class="fa-solid fa-flag-checkered me-1"></i> Submit Test
+    </button>
+  </div>
+</div>
+
 <script>
   // --- Selectable question options ---
   document.querySelectorAll('.q-opt').forEach(function (opt) {
@@ -326,6 +386,92 @@ $avgScore = count($existing) > 0 ? round(array_sum($existing) / count($existing)
     } else {
       initSkillChart();
     }
+  })();
+</script>
+
+<script src="assets/js/guard.js"></script>
+<script>
+  // ================= ANTI-CHEAT GUARD (Skill Assessment) =================
+  (function () {
+    var form = document.getElementById('skillForm');
+    if (!form) return;
+    var intro = document.getElementById('saIntro');
+    var lock = document.getElementById('saLock');
+    var body = document.getElementById('saBody');
+    var timerEl = document.getElementById('saTimer');
+    var agree = document.getElementById('saAgree');
+    var startBtn = document.getElementById('saStartBtn');
+    var submitBtn = document.getElementById('saSubmitBtn');
+
+    var DURATION = 10 * 60; // 10 minutes fixed for skill assessment
+    var timerId = null;
+    var timerDeadline = 0;
+    var timerTick = null;
+    var guard = null;
+    var allowNav = false;
+
+    agree.addEventListener('change', function () {
+      startBtn.disabled = !agree.checked;
+    });
+
+    function startTest() {
+      intro.classList.remove('active');
+      lock.classList.add('active');
+      if (body && form) body.appendChild(form);
+      SeekGuard.enterFullscreen();
+      startTimer();
+      guard = SeekGuard.start({
+        maxViolations: 2,
+        onContinue: function () {
+          if (window.SeekGuard) SeekGuard.enterFullscreen();
+          window.focus();
+        },
+        onFullscreenExit: function () {
+          if (window.SeekGuard) SeekGuard.enterFullscreen();
+        },
+        onAutoSubmit: function () { submitTest(true); }
+      });
+    }
+
+    // deadline-based countdown — does NOT pause in background tabs
+    function startTimer() {
+      timerDeadline = Date.now() + DURATION * 1000;
+      timerTick = function () {
+        var rem = Math.max(0, Math.round((timerDeadline - Date.now()) / 1000));
+        timerEl.textContent = SeekGuard.secondsToText(rem);
+        if (rem <= 60) timerEl.classList.add('low');
+        if (rem <= 0) {
+          clearInterval(timerId); timerId = null;
+          submitTest(true);
+        }
+      };
+      timerTick();
+      timerId = setInterval(timerTick, 500);
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (lock.classList.contains('active') && timerTick) timerTick();
+    });
+    window.addEventListener('focus', function () {
+      if (lock.classList.contains('active') && timerTick) timerTick();
+    });
+
+    function submitTest(auto) {
+      if (timerId) { clearInterval(timerId); timerId = null; }
+      if (guard) guard.stop();
+      timerTick = null;
+      SeekGuard.exitFullscreen();
+      allowNav = true; // our own submission must NOT be blocked by beforeunload
+      form.submit(); // bypasses HTML5 required validation so unanswered Qs still submit
+    }
+
+    startBtn.addEventListener('click', startTest);
+    submitBtn.addEventListener('click', function () { submitTest(false); });
+    window.addEventListener('beforeunload', function (e) {
+      if (!allowNav && lock.classList.contains('active')) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
   })();
 </script>
 

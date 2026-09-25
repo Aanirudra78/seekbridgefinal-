@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'regen
 
 // students who verified via this code
 $verifiedStudents = array();
-$st = db_query('SELECT u.name, u.email, sd.course_branch, sd.year FROM student_details sd JOIN users u ON u.id = sd.user_id WHERE UPPER(sd.college_code) = ? ORDER BY u.name', 's', array($inst['college_code']));
+$st = db_query('SELECT u.id AS student_id, u.name, u.email, sd.course_branch, sd.year FROM student_details sd JOIN users u ON u.id = sd.user_id WHERE UPPER(sd.college_code) = ? ORDER BY u.name', 's', array($inst['college_code']));
 $res = mysqli_stmt_get_result($st);
 while ($row = mysqli_fetch_assoc($res)) $verifiedStudents[] = $row;
 mysqli_stmt_close($st);
@@ -215,7 +215,7 @@ require 'includes/page_header_institution.php';
           <h6 class="fw-bold mb-1">Your College Students</h6>
           <p class="mb-0 small text-muted-2"><?php echo count($studentIds); ?> total student(s) linked to "<?php echo e($collegeName); ?>" — <?php echo count($verifiedStudents); ?> verified via your code.</p>
           <?php if (count($verifiedStudents) > 0): ?>
-            <a href="institution_dashboard.php?s=about" class="btn btn-sm btn-accent mt-2"><i class="fa-solid fa-users me-1"></i> View List</a>
+            <a href="student_search.php" class="btn btn-sm btn-accent mt-2"><i class="fa-solid fa-users me-1"></i> View List</a>
           <?php endif; ?>
         </div>
       </div>
@@ -566,7 +566,7 @@ if ($section === 'about'):
       <?php else: ?>
         <div class="table-responsive">
           <table class="table table-hover align-middle">
-            <thead class="table-light"><tr><th>#</th><th>Student</th><th>Email</th><th>Course / Branch</th><th>Year</th></tr></thead>
+            <thead class="table-light"><tr><th>#</th><th>Student</th><th>Email</th><th>Course / Branch</th><th>Year</th><th></th></tr></thead>
             <tbody>
               <?php $n = 1; foreach ($verifiedStudents as $vs): ?>
                 <tr>
@@ -575,6 +575,7 @@ if ($section === 'about'):
                   <td><?php echo e($vs['email']); ?></td>
                   <td><?php echo e($vs['course_branch'] ?: '—'); ?></td>
                   <td><?php echo e($vs['year'] ?: '—'); ?></td>
+                  <td class="text-end"><a href="view_student_profile.php?id=<?php echo (int)$vs['student_id']; ?>" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1"></i> View</a></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>

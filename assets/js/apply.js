@@ -18,6 +18,7 @@
     applyNowBtn: document.getElementById('applyNowBtn'),
     finalApplyBtn: document.getElementById('finalApplyBtn'),
     prevBtn: document.getElementById('prevBtn'),
+    closeBtn: document.querySelector('#applyModal .btn-close'),
     startTestBtn: document.getElementById('startTestBtn'),
     testReady: document.getElementById('testReady'),
     noTestReady: document.getElementById('noTestReady'),
@@ -27,6 +28,7 @@
     timerBox: document.getElementById('timerBox'),
     questionsWrap: document.getElementById('questionsWrap'),
     submitTestBtn: document.getElementById('submitTestBtn'),
+    applyWarn: document.getElementById('applyWarn'),
     apPhone: document.getElementById('ap-phone'),
     apCity: document.getElementById('ap-city'),
     apLinkedin: document.getElementById('ap-linkedin'),
@@ -42,7 +44,11 @@
   let test = null;    // { duration_minutes, total, questions }
   let answers = {};   // idx -> selected option index
   let timer = null;
-  let secondsLeft = 0;
+  let timerDeadline = 0;
+  let timerTick = null;
+  let activeTest = false;
+  let guard = null;
+  let allowNav = false;
 
   // ---------- wizard step switching ----------
   let step = 1;
@@ -126,28 +132,64 @@
     return map;
   }
 
-  // ---------- timer ----------
-  function secondsToText(s) {
-    const m = Math.floor(s / 60), sec = s % 60;
-    return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
-  }
+// ---------- timer (deadline based - never pauses in background) ----------
+  const secondsToText = (window.SeekGuard && SeekGuard.secondsToText) || function (s) {
+    s = Math.max(0, Number(s) | 0);
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
   function startTimer() {
     if (timer) clearInterval(timer);
-    secondsLeft = (test.duration_minutes || 10) * 60;
-    els.timerBox.textContent = secondsToText(secondsLeft);
-    timer = setInterval(() => {
-      secondsLeft--;
-      els.timerBox.textContent = secondsToText(Math.max(0, secondsLeft));
-      if (secondsLeft <= 0) {
-        clearInterval(timer);
+    const dur = (test.duration_minutes || 10) * 60;
+    timerDeadline = Date.now() + dur * 1000;
+    els.timerBox.classList.remove('low');
+    timerTick = function () {
+      const rem = Math.max(0, Math.round((timerDeadline - Date.now()) / 1000));
+      els.timerBox.textContent = secondsToText(rem);
+      if (rem <= 60) els.timerBox.classList.add('low');
+      if (rem <= 0) {
+        clearInterval(timer); timer = null;
         submitTest();
       }
-    }, 1000);
+    };
+    timerTick();
+    timer = setInterval(timerTick, 500);
+  }
+  // instantly re-sync the countdown whenever the student returns to the tab
+  document.addEventListener('visibilitychange', function () {
+    if (activeTest && timerTick) timerTick();
+  });
+  window.addEventListener('focus', function () {
+    if (activeTest && timerTick) timerTick();
+  });
+
+  // ---------- anti-cheat guard ----------
+  function startGuard() {
+    if (!window.SeekGuard) return;
+    guard = SeekGuard.start({
+      maxViolations: 2,
+      onContinue: function () {
+        if (window.SeekGuard) SeekGuard.enterFullscreen(modalEl);
+        window.focus();
+      },
+      onFullscreenExit: function () {
+        if (window.SeekGuard) SeekGuard.enterFullscreen(modalEl);
+      },
+      onAutoSubmit: function () { submitTest(); }
+    });
+  }
+  function stopGuard() {
+    if (guard) { guard.stop(); guard = null; }
+    timerTick = null;
+    activeTest = false;
+    if (window.SeekGuard) SeekGuard.exitFullscreen();
+    if (els.closeBtn) els.closeBtn.classList.remove('d-none');
   }
 
   // ---------- submit test -> result ----------
   function submitTest() {
     if (timer) { clearInterval(timer); timer = null; }
+    stopGuard();
+    els.prevBtn.classList.remove('d-none');
     answers = collectAnswers();
     const answered = Object.keys(answers).length;
     const total = test.questions.length;
@@ -174,6 +216,7 @@
     form.bio.value = els.apBio.value.trim();
     form.test_taken.value = testTaken ? '1' : '0';
     form.test_answers.value = testTaken ? JSON.stringify(answers) : '';
+    allowNav = true;
     form.submit();
   }
 
@@ -212,6 +255,9 @@
 
   modalEl.addEventListener('hide.bs.modal', function () {
     if (timer) { clearInterval(timer); timer = null; }
+    stopGuard();
+    activeTest = false;
+    els.prevBtn.classList.remove('d-none');
     test = null;
     step = 1;
   });
@@ -238,11 +284,24 @@
   els.applyNowBtn.addEventListener('click', () => submitApplication(false));
   els.finalApplyBtn.addEventListener('click', () => submitApplication(true));
   els.startTestBtn.addEventListener('click', () => {
+    activeTest = true;
     renderQuestions();
     setStep(3);
     startTimer();
+    els.prevBtn.classList.add('d-none');
+    if (els.closeBtn) els.closeBtn.classList.add('d-none');
+    if (window.SeekGuard) SeekGuard.enterFullscreen(modalEl);
+    startGuard();
   });
   els.submitTestBtn.addEventListener('click', submitTest);
+
+  // block leaving the page while a test is running
+  window.addEventListener('beforeunload', function (e) {
+    if (!allowNav && activeTest) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
 
   // auto-open via ?apply=ID
   const autoIdEl = document.getElementById('autoOpenId');

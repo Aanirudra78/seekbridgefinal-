@@ -34,6 +34,7 @@ $initial = strtoupper(substr($uname, 0, 1));
         <li class="nav-item"><a class="nav-link <?php echo $activeNav==='dashboard'?'active':''; ?>" href="industry_dashboard.php"><i class="fa-solid fa-house"></i> Dashboard</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $activeNav==='post'?'active':''; ?>" href="industry_post.php"><i class="fa-solid fa-plus"></i> Post Internship / Job</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $activeNav==='apps'?'active':''; ?>" href="industry_applications.php"><i class="fa-solid fa-user-graduate"></i> Applications</a></li>
+        <li class="nav-item"><a class="nav-link <?php echo $activeNav==='search'?'active':''; ?>" href="student_search.php"><i class="fa-solid fa-magnifying-glass"></i> Search Students</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $activeNav==='courses'?'active':''; ?>" href="industry_courses.php"><i class="fa-solid fa-book-open"></i> Courses</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $activeNav==='programs'?'active':''; ?>" href="industry_programs.php"><i class="fa-solid fa-handshake"></i> Programs</a></li>
         <li class="nav-item"><a class="nav-link <?php echo $activeNav==='profile'?'active':''; ?>" href="industry_profile.php"><i class="fa-solid fa-building"></i> About / Company</a></li>
